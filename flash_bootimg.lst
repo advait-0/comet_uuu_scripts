@@ -1,0 +1,58 @@
+# @_flash.bin            | bootloader, which can extract from wic image
+# @_image   [_flash.bin] | wic image burn to emmc.
+
+FB: download -f Image 
+FB: ucmd cp.b 0x42800000 0x70000000 37575168 
+FB: ucmd md.l 0x40400000 20  
+
+FB: download -f mecha-comet-m-gen1-mfgtool-initramfs.cpio.gz.u-boot
+FB: ucmd cp.b 0x42800000 0x74000000 49994464
+
+FB: download -f imx8mp-mecha-comet-m-gen6.dtb
+FB: ucmd cp.b 0x42800000 0x43800000 57792
+
+FB: acmd booti 0x70000000 0x74000000 0x43800000
+
+FBK: ucmd sleep 3
+
+### Clear all Partitions 
+FBK: ucmd parted /dev/mmcblk2 --script mklabel msdos
+
+FBK: ucmd lsblk
+
+# FAT16 BOOT partition
+FBK: ucmd parted /dev/mmcblk2 -- mkpart primary FAT16 10MB 195MB
+FBK: ucmd mkfs.vfat /dev/mmcblk2p1
+
+FBK: ucmd parted /dev/mmcblk2 -- mkpart primary ext4 205MB 10000MB
+FBK: ucmd mkfs.ext4 /dev/mmcblk2p2
+
+FBK: ucmd parted /dev/mmcblk2 -- mkpart primary ext4 10005MB 29000MB
+FBK: ucmd mkfs.ext4 /dev/mmcblk2p3
+
+# ROOT PARTITION ----------------------------
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkdir -p /mnt
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t ext4 /dev/mmcblk2p2 /mnt
+
+# BOOT PARTITION --------------------------
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkdir -p /mnt/boot
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk2p1 /mnt/boot
+
+# HOME PARTITION ---------------------------
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkdir -p /mnt/home
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t ext4 /dev/mmcblk2p3 /mnt/home
+
+# Extract _rootfs.tar.bz2
+FBK: acmd export EXTRACT_UNSAFE_SYMLINKS=1; tar -z -x -C /mnt
+
+# Download image-core to root partition
+FBK: ucp _image t:- /mnt
+
+# FBK: ucp debian-image-inited.tar.gz t:- /mnt
+
+FBK: ucmd sleep 15
+
+FBK: ucmd sync
+FBK: DONE
+
+
