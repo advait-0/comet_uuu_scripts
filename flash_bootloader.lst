@@ -1,0 +1,14 @@
+SDPS: boot -scanterm -f flash2.bin -scanlimited 0x800000
+FB: ucmd setenv fastboot_dev mmc
+FB: ucmd setenv mmcdev ${emmc_dev}
+FB: ucmd mmc dev ${emmc_dev}
+FB: flash mmc2boot0 flash2.bin 
+FB: ucmd mmc partconf 2 0 1 1
+
+FB: ucmd setenv fastboot_dev mmc
+FB: ucmd setenv mmcdev ${emmc_dev}
+FB: ucmd mmc dev ${emmc_dev}
+FB: flash mmc2boot1 flash.bin 
+FB: ucmd mmc partconf 2 0 2 2
+
+FB: done
